@@ -51,7 +51,7 @@ const unsigned short int commom_info_addr=10;           //starting address to st
 /***************************************************/
 /************Private Variables**********************/
 unsigned char NODE_ID,MASTER_ID,MANUAL_OVERRIDE=N;
-unsigned char NODE_ID_received,MASTER_ID_received,SET_STATE_received;
+unsigned char NODE_ID_received,MASTER_ID_received,SET_STATE_received,COMMAND_ID_received;
 bool NEW_SWITCH_STATE;
 unsigned char LIVE_STATE,STATE_DIFFERENCE;
 //unsigned char LAST_COMMAND_ID,LAST_KEEPALIVE_ID;
@@ -59,6 +59,7 @@ unsigned char LIVE_STATE,STATE_DIFFERENCE;
 ///const uint64_t pipes[2] = { 0xF0F0F0F0E1LL, 0xF0F0F0F0D2LL };    //pipes for RF communication
 uint8_t pipeno[6];
 char data_to_send[33];
+char data_to_send_tmp[33];
 char rec_val_new[32];    
 char attribute[4][10];
 char attr_name[4][6];
@@ -423,7 +424,12 @@ void send_to_server(unsigned short int send_code)
   */   
   switch(send_code)
   {
-    case 0://code to frame payload to be written
+    case 0:LIVE_STATE=get_state();
+           data_to_send_tmp[] = "NDID= ,MSID= ,CMID= ,SDST= ";
+           data_to_send_tmp[5]=NODE_ID;
+           data_to_send_tmp[12]=MASTER_ID;
+           data_to_send_tmp[19]=COMMAND_ID_received;
+           data_to_send_tmp[26]=LIVE_STATE;
            break;
   }         
   
@@ -478,25 +484,26 @@ void loop()
                 Serial.print("STATE_DIFFERENCE= ");Serial.println(STATE_DIFFERENCE);
                 if(STATE_DIFFERENCE == 0x01)
                 {
-                  NEW_SWITCH_STATE=(SET_STATE_received&0x01==0x01)?true:false;
+                  NEW_SWITCH_STATE=((SET_STATE_received&0x01)==0x01)?true:false;
                   Serial.print("New state of switch S0 is ");Serial.println(NEW_SWITCH_STATE);
                   status_update(0,NEW_SWITCH_STATE);
                 }
                 else if(STATE_DIFFERENCE == 0x02)
                 {
-                  NEW_SWITCH_STATE=(SET_STATE_received&0x02==0x02)?true:false;
+                  NEW_SWITCH_STATE=((SET_STATE_received&0x02)==0x02)?true:false;
                   Serial.print("New state of switch S1 is ");Serial.println(NEW_SWITCH_STATE);
                   status_update(1,NEW_SWITCH_STATE);
                 }
                 else if(STATE_DIFFERENCE == 0x04)
                 {
-                  NEW_SWITCH_STATE=(SET_STATE_received&0x04==0x04)?true:false;
+                  NEW_SWITCH_STATE=((SET_STATE_received&0x04)==0x04)?true:false;
                   Serial.print("New state of switch S2 is ");Serial.println(NEW_SWITCH_STATE);
                   status_update(2,NEW_SWITCH_STATE);
                 }
                 else if(STATE_DIFFERENCE == 0x08)
                 {
-                  NEW_SWITCH_STATE=(SET_STATE_received&0x08==0x08)?true:false;
+                  Serial.print("SET_STATE_received=");Serial.println(SET_STATE_received);
+                  NEW_SWITCH_STATE=((SET_STATE_received&0x08)==0x08)?true:false;
                   Serial.print("New state of switch S3 is ");Serial.println(NEW_SWITCH_STATE);
                   status_update(3,NEW_SWITCH_STATE);
                 }
