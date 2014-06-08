@@ -93,6 +93,8 @@ void process_received_data();
 unsigned char get_state();
 void send_to_server();
 void send_data();
+void clear_all();
+void resetNode();
 
 
 
@@ -275,7 +277,7 @@ void process_received_data()
        }
      }
      Serial.println();
-     Serial.print("received_attributes_list[");Serial.print(k);Serial.print("] = ");Serial.println(received_attributes_list[k]);
+     Serial.print("[");Serial.print(k);Serial.print("] = ");Serial.println(received_attributes_list[k]);
    }
    
    Serial.println();
@@ -425,7 +427,7 @@ void send_to_server(unsigned short int send_code)
   switch(send_code)
   {
     case 0:LIVE_STATE=get_state();
-           data_to_send_tmp[] = "NDID= ,MSID= ,CMID= ,SDST= ";
+      //     data_to_send_tmp[25] = "NDID= ,MSID= ,CMID= ,SDST= ";
            data_to_send_tmp[5]=NODE_ID;
            data_to_send_tmp[12]=MASTER_ID;
            data_to_send_tmp[19]=COMMAND_ID_received;
@@ -452,12 +454,28 @@ void send_data(char* data_to_send)
   
 }
 
+void clear_all()
+{
+  
+  //Function to clear transaction specific data like NODE_ID_received, MASTER_ID_received etc
+  
+  
+  
+}
+
+void resetNode()
+{
+ //Function to cater to external reset switch 
+}
+
+
 /***************************************************/
 
 
 void setup() //Initialization
 {
 //  attributes=attributes+String("llo");
+        attachInterrupt(0, resetNode, RISING);
 	Node_Init();	//Initialize node to previous state. 	
         RF_Init();
 }
@@ -540,4 +558,5 @@ void loop()
             Serial.println("MASTER ID does not match, drop payload!");
           }
       }
+      clear_all();
 }
