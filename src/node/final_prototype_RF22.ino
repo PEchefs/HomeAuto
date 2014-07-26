@@ -2,7 +2,22 @@
 /*    photoelectricchefs.org	*/
 
 /*  NODE CODE  */
-/*  Recognized properties and commands(together referred as attributes):
+/*  
+RF - Arduino Pin Assignments:
+----------------
+ RF      -  Arduino
+----       ---------
+ GND     -  GND
+ SDN     -  GND
+ Vcc     -  Vcc (3v3)
+ nIRQ    -  Pin2 
+ nSEL    -  Pin10
+ SDI     -  Pin11
+ SDO     -  Pin12
+ SCLK    -  Pin13
+
+Recognized properties and commands(together referred as attributes):
+--------------------------------------------------------------------
     NDID  -  NODE ID                           -  PROPERTY
     MSID  -  MASTER ID                         -  PROPERTY
     CMID  -  COMMAND ID                        -  PROPERTY
