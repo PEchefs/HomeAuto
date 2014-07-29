@@ -18,7 +18,7 @@ PhotoElectricChefs
 RF22 rf22;
 
 // UART receive string
-String stringToSend = "";         // a string to hold incoming data
+uint8_t stringToSend[32] = {0};         // a string to hold incoming data
 boolean stringComplete = false;  // whether the string is complete
 
 void setup(void)
@@ -39,15 +39,16 @@ void loop(void)
 	Serial.println(stringToSend);
  
 // TODO: Following is a hack to convert the received string to an unsigned character array. Need to change this. 
-	int stringToSendLength = stringToSend.length() + 1; 
-	unsigned char* val = (unsigned char*) stringToSend.c_str();
-    rf22.send(val, sizeof(val));
+	//int stringToSendLength = stringToSend.length() + 1; 
+	//uint8_t* val = (uint8_t*) stringToSend.c_str();
+    rf22.send(stringToSend, sizeof(stringToSend));
     rf22.waitPacketSent();
 
 // TODO: Check success of sending via RF
 
 	Serial.println("Sending ok");
-	stringToSend = "";
+        for(int i=0;i<32;i++)
+          stringToSend[i]=0;
 //TODO: Clear val
 //	val[]="";
   stringComplete = false;
@@ -55,11 +56,18 @@ void loop(void)
 }
 
 void serialEvent() {
+  static int i=0;
   while (Serial.available()) {
     char inChar = (char)Serial.read(); 
-    stringToSend += inChar;
     if (inChar == '\n') {
       stringComplete = true;
+      i=0;
     } 
+    else
+    {
+      stringToSend[i]= inChar;
+      i++;
+    }
   }
 }
+

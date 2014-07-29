@@ -156,11 +156,12 @@ void Read_EEPROM()
 void status_update(unsigned short int switch_number, boolean switch_state)
 {
 /*Usage Example: status_update(0, true) to turn ON switch S0*/
-	
 		 digitalWrite(S[switch_number].pin, (switch_state==true)?HIGH:LOW);	//send control signal to switch ON/OFF a switch
 		 S[switch_number].state=switch_state;					//update state in switch's element in structure
 		 EEPROM.write(S[switch_number].addr, S[switch_number].state);		//update state in EEPROM
-		 
+	         Serial.print("DEBUG: S[switch_number].state= ");Serial.println(S[switch_number].state);
+
+		 LIVE_STATE=SET_STATE_received;
 		/*Illustration to write another info regarding S1, say ID into EEPROM:
 		EEPROM.write(S[switch_number].addr+1, S[switch_number].id); 
 		assuming id is an element of switches structure and is defined/passed*/
@@ -234,7 +235,7 @@ void process_received_data()
              j=0;
              while(attribute[k][m]!=0)
              {// Serial.println("DEBUG:");: Serial.print("Copying attribute[");Serial.print(k);Serial.print("][");Serial.print(m);Serial.print("] to attr_val[");Serial.print(k);Serial.print("][");Serial.print(j);Serial.println("]");
-               attr_val[k][j]=attribute[k][m];
+               attr_val[k][j]=attribute[k][m]-1;
                j++;
                m++;
                
@@ -352,7 +353,7 @@ unsigned char get_state()
 {
   //code to infer state from current sensors to be written
   //temporarily hard-coded for testing
-  LIVE_STATE=0x00;      // Binary: 00001000 - Switch S3 is ON, S0, S1 and S2 are off.
+  //LIVE_STATE=0x00;      // Binary: 00001000 - Switch S3 is ON, S0, S1 and S2 are off.
   return LIVE_STATE;
   
 }
@@ -389,9 +390,28 @@ void clear_all()
 {
   
   //TODO: Function to clear transaction specific data like NODE_ID_received, MASTER_ID_received etc
-  
-  
-  
+  NODE_ID_received=0;
+  MASTER_ID_received=0;
+  SET_STATE_received=0;
+  COMMAND_ID_received=0;
+  for(i=0;i<33;i++)
+  data_to_send[i]=0;
+  for(i=0;i<33;i++)
+  data_to_send_tmp[i]=0;
+  for(i=0;i<32;i++)
+   rec_val_new[i]=0;
+  for(i=0;i<4;i++)
+   for(j=0;j<6;j++)
+   attr_name[i][j]=0;
+  for(i=0;i<4;i++)
+   for(j=0;j<10;j++)
+   attribute[i][j]=0;
+  for(i=0;i<5;i++)
+  {
+  received_attributes_list[i]="";
+  received_properties[i]="";
+  received_commands[i]="";
+  }
 }
 
 void resetNode()
@@ -428,6 +448,8 @@ void loop()
             {
               if(received_commands[i] == "STST")
               {
+                Serial.print("DEBUG: LIVE_STATE= ");Serial.println(LIVE_STATE);
+                Serial.print("DEBUG: SET_STATE_received= ");Serial.println(SET_STATE_received);
                 LIVE_STATE=get_state();
                 STATE_DIFFERENCE = LIVE_STATE ^ SET_STATE_received;
                 Serial.print("STATE_DIFFERENCE= ");Serial.println(STATE_DIFFERENCE);

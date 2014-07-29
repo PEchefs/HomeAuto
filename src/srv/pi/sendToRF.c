@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include<stdlib.h>
-
+#include <wiringSerial.h>
+int fd=0;
 void displayUsage()
 {
 	printf("ERROR: Expected inputs: MSID=<>, NDID=<>, CMID=<>, STST=<>\n");
@@ -13,6 +14,8 @@ void displayUsage()
 int sendUART(char strTosendUART[])
 {
 	printf("Sending : %s \n", strTosendUART);
+	serialPuts (fd, strTosendUART) ;	
+	serialClose(fd);
 	return 1;
 	// TODO: Add code to send via UART and based on success/failure of sending, return TRUE/FALSE
 }
@@ -106,7 +109,13 @@ int main(int argc, char *argv[])
 	if(argc!=5)
 	{
 		displayUsage();
-		return 1;
+		return 0;
+	}
+	fd=serialOpen ("/dev/ttyAMA0", 9600);
+	if(fd<0)
+	{
+		printf("Error opening serial port!");
+		return 0;
 	}
 	printf("The values received are\n");
 	printf("ARGC = %d \n",argc);
@@ -133,6 +142,7 @@ int main(int argc, char *argv[])
 	strcat(strTosend,",");
 	strcat(strTosend,argv[4]);
 	strcat(strTosend,",");
+	strcat(strTosend,"\n");
 	printf("STRTOSEND=%s\n", strTosend);
 
 
