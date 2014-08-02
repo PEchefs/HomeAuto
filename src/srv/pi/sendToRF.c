@@ -42,7 +42,8 @@ char convert(char ToConvert[])
 	char HexVal=0;
 	HexVal=(16*translate(HexText[0]))+translate(HexText[1]);
 	printf("ASCII character corresponding to Hex Value = %c\n", HexVal);
-	return HexVal;
+	// HexVal+1 so that 0x00 also can be sent; this is compensated by a decrement on the node side
+	return HexVal+1;
 }
 
 
@@ -157,3 +158,4 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
+
