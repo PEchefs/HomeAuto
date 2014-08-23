@@ -41,6 +41,7 @@ RF22 rf22;
 //Defining pins on Arduino through which switches are controlled
 
 const unsigned short int switch_pins[N]={8,9,10,11};	//for 4 switch node
+const unsigned short int switch_volt_pins[N]={3,4,5,6};
 
 /* Defining starting addresses in EEPROM where each of the switches' state and/or other properties are stored.
    Assuming 20 bytes would suffice for each switch data. Can extend if needed.
@@ -80,6 +81,9 @@ struct switches
 unsigned short int pin;
 boolean state;						//true=ON, false=OFF
 byte addr;
+unsigned short int volt_pin;	//voltage sensor input
+unsigned short int volt_prev_state;
+unsigned short int volt_current_state;
 };
 struct switches S[N];					// switches: S[0],S[1],S[2],...S[N-1]
 
@@ -111,6 +115,12 @@ void Node_Init()
 
 	for(i=0;i<N;i++)
 	pinMode(S[i].pin, OUTPUT);
+	
+	for(i=0;i<N;i++)
+	{
+		S[i].volt_pin=switch_volt_pins[i];
+		pinMode(S[i].volt_pin, INPUT);
+	}
 
 //Read EEPROM to determine previous states and properties of the switches
 	Read_EEPROM(); 		   
@@ -147,7 +157,8 @@ void Read_EEPROM()
 //        LAST_KEEPALIVE_ID=EEPROM.read(commom_info_addr+4);
 	for(i=0;i<N;i++)	
 	S[i].state = EEPROM.read(S[i].addr);
-//	S[i].id = EEPROM.read(S[i].addr+1); //illustration to read more info abt a particular switch
+	S[i].volt_prev_state = EEPROM.read(S[i].addr+1);
+	//	S[i].id = EEPROM.read(S[i].addr+1); //illustration to read more info abt a particular switch
 
 }
 
@@ -162,6 +173,7 @@ void status_update(unsigned short int switch_number, boolean switch_state)
 	         Serial.print("DEBUG: S[switch_number].state= ");Serial.println(S[switch_number].state);
 
 		 LIVE_STATE=SET_STATE_received;
+		 
 		/*Illustration to write another info regarding S1, say ID into EEPROM:
 		EEPROM.write(S[switch_number].addr+1, S[switch_number].id); 
 		assuming id is an element of switches structure and is defined/passed*/
@@ -369,10 +381,10 @@ void send_to_server(unsigned short int send_code)
   {
     case 0:LIVE_STATE=get_state();
       //     data_to_send_tmp[25] = "NDID= ,MSID= ,CMID= ,SDST= ";
-           data_to_send_tmp[5]=NODE_ID;
-           data_to_send_tmp[12]=MASTER_ID;
-           data_to_send_tmp[19]=COMMAND_ID_received;
-           data_to_send_tmp[26]=LIVE_STATE;
+     //      data_to_send_tmp[5]=NODE_ID;
+     //      data_to_send_tmp[12]=MASTER_ID;
+       //    data_to_send_tmp[19]=COMMAND_ID_received;
+         //  data_to_send_tmp[26]=LIVE_STATE;
            break;
   }         
   
@@ -402,7 +414,12 @@ void clear_all()
    rec_val_new[i]=0;
   for(i=0;i<4;i++)
    for(j=0;j<6;j++)
+   for(j=0;j<6;j++)
    attr_name[i][j]=0;
+  for(i=0;i<4;i++)
+   for(j=0;j<4;j++)
+   attr_val[i][j]=0;
+    
   for(i=0;i<4;i++)
    for(j=0;j<10;j++)
    attribute[i][j]=0;
@@ -511,5 +528,33 @@ void loop()
             Serial.println("MASTER ID does not match, drop payload!");
           }
       }
+	  else
+	  {
+		for(i=0;i<N;i++)	
+		{
+		unsigned long time1=pulseIn(S[i].volt_pin,LOW, 100000);
+		Serial.print(S[i].volt_pin);Serial.print("=");Serial.println(time1);
+		if(time1==0)
+			S[i].volt_current_state=0;
+		else
+			S[i].volt_current_state=1;
+		if(S[i].volt_current_state!=S[i].volt_prev_state)
+		{
+			if (S[i].state==true)
+			{
+				SET_STATE_received=(LIVE_STATE^= 1 << i);
+				status_update(i,false);
+			
+			}
+			else
+			{
+				SET_STATE_received=(LIVE_STATE^= 1 << i);
+				status_update(i,true);
+			}
+		}
+		S[i].volt_prev_state=S[i].volt_current_state;
+		EEPROM.write(S[i].addr+1, S[i].volt_prev_state);		//update state in EEPROM
+		}
+	}
       clear_all();
 }
