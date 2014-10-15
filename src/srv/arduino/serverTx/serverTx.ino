@@ -117,4 +117,8 @@ void sendToPiUART()
        Serial.print(rec_val_new[index]);
        Serial.write(rec_val_new[index]);
       }
+        for(int i=0;i<32;i++)
+        {
+          rec_val_new[i]=0;
+        }
 }

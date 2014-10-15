@@ -11,11 +11,22 @@ PhotoElectricChefs
  Pin7(MISO)-  MISO
  Pin8(IRQ) -  No Connection
 */
-#include <SPI.h>
-///#include "RF24.h"
-#include <RF22.h>
+#define RF22_MAX_MESSAGE_LEN 50
 
-RF22 rf22;
+
+#include <RF22Router.h>
+#include <RF22Mesh.h>
+#include <SPI.h>
+//#include <RF22.h>
+
+
+#define CLIENT_ADDRESS 2
+#define SERVER_ADDRESS 1
+
+///RF22 rf22;
+RF22Mesh rf22(SERVER_ADDRESS);
+//RF22 rf22;
+
 // Set up nRF24L01 radio on SPI bus plus pins 9 & 10 
 
 ///RF24 radio(7,8);
@@ -54,11 +65,14 @@ void loop(void)
       } 
  */     
 ///  bool ok = radio.write( val, 32*sizeof(unsigned char) );
-      rf22.send(val, sizeof(val));
-      rf22.waitPacketSent();
+      //rf22.send(val, sizeof(val));
+      if (rf22.sendtoWait(val, sizeof(val), CLIENT_ADDRESS)!= RF22_ROUTER_ERROR_NONE)
+        Serial.println("sendtoWait failed");
+      //rf22.waitPacketSent();
 //    bool ok = radio.write(&val, sizeof(unsigned char));
 ///  if(ok)
-     Serial.println("Sending ok");
+    else
+      Serial.println("Sending ok");
 ///  else
 ///  Serial.println("sending failed");
   delay(1000);

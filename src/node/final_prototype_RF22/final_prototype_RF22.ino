@@ -37,8 +37,10 @@ RF22 rf22;
 //Define number of switches controlled by the node
 
 #define N 4
-
-//Defining pins on Arduino through which switches are controlled
+#define SUCCESS 1
+#define STATECHANGE 2
+#define FAIL 3
+#define CURRENTSTATE 4
 
 const unsigned short int switch_pins[N]={8,9,10,11};	//for 4 switch node
 const unsigned short int switch_volt_pins[N]={3,4,5,6};
@@ -53,15 +55,15 @@ const unsigned short int commom_info_addr=10;           //starting address to st
 /***************************************************/
 /************Private Variables**********************/
 unsigned char NODE_ID,MASTER_ID,MANUAL_OVERRIDE=N;
-unsigned char NODE_ID_received,MASTER_ID_received,SET_STATE_received,COMMAND_ID_received;
+unsigned char NODE_ID_received,MASTER_ID_received,SET_STATE_received,COMMAND_ID_received,COMMAND_ID_generated;
 bool NEW_SWITCH_STATE;
 unsigned char LIVE_STATE,STATE_DIFFERENCE;
 //unsigned char LAST_COMMAND_ID,LAST_KEEPALIVE_ID;
 
 ///const uint64_t pipes[2] = { 0xF0F0F0F0E1LL, 0xF0F0F0F0D2LL };    //pipes for RF communication
 uint8_t pipeno[6];
-char data_to_send[33];
-char data_to_send_tmp[33];
+unsigned char data_to_send[35];
+unsigned char data_to_send_tmp[35];
 char rec_val_new[32];    
 char attribute[4][10];
 char attr_name[4][6];
@@ -100,7 +102,7 @@ void send_to_server();
 void send_data();
 void clear_all();
 void resetNode();
-
+unsigned char genCMID();
 
 
 
@@ -177,6 +179,7 @@ void status_update(unsigned short int switch_number, boolean switch_state)
 		/*Illustration to write another info regarding S1, say ID into EEPROM:
 		EEPROM.write(S[switch_number].addr+1, S[switch_number].id); 
 		assuming id is an element of switches structure and is defined/passed*/
+		
 		
 }
 
@@ -373,31 +376,64 @@ unsigned char get_state()
 void send_to_server(unsigned short int send_code)
 {
   /*  send_code mapping:
-      0  -  send state to server
-      1  -  
+      1  -  ACK 		 : Send acknowledgement to server (for previous CMID processed)
+	  2  -  STATECHANGE  : inform state change (by manual operation) to Node
+	  3	 -	FAIL		 : more than one switch state has changed, inform server the present state
+	  4  -	CURRENTSTATE : server has requested currrent state, send current state
   */   
   //TODO: Should call send_data to send?
   switch(send_code)
   {
-    case 0:LIVE_STATE=get_state();
-      //     data_to_send_tmp[25] = "NDID= ,MSID= ,CMID= ,SDST= ";
-     //      data_to_send_tmp[5]=NODE_ID;
-     //      data_to_send_tmp[12]=MASTER_ID;
-       //    data_to_send_tmp[19]=COMMAND_ID_received;
-         //  data_to_send_tmp[26]=LIVE_STATE;
-           break;
-  }         
+	case 1:	LIVE_STATE=get_state();
+			strncpy((char *)data_to_send_tmp, "NDID= ,MSID= ,CMID= ,ACKL= ,SDST=  ,", sizeof(data_to_send_tmp));
+			data_to_send_tmp[5]=NODE_ID;
+			data_to_send_tmp[12]=MASTER_ID;
+			data_to_send_tmp[19]=COMMAND_ID_received;
+			data_to_send_tmp[26]=0x01;
+			data_to_send_tmp[33]=LIVE_STATE;
+			break;
+    case 2:	LIVE_STATE=get_state();
+			COMMAND_ID_generated=genCMID();
+			strncpy((char *)data_to_send_tmp, "NDID= ,MSID= ,CMID= ,SDST= ,", sizeof(data_to_send_tmp));
+           //data_to_send_tmp = "NDID= ,MSID= ,CMID= ,SDST= ";
+			data_to_send_tmp[5]=NODE_ID;
+			data_to_send_tmp[12]=MASTER_ID;
+			data_to_send_tmp[19]=COMMAND_ID_generated;
+			data_to_send_tmp[26]=LIVE_STATE;
+			break;
+	case 3: 
+	case 4: LIVE_STATE=get_state();
+			strncpy((char *)data_to_send_tmp, "NDID= ,MSID= ,CMID= ,SDST= ,", sizeof(data_to_send_tmp));
+           //data_to_send_tmp = "NDID= ,MSID= ,CMID= ,SDST= ";
+			data_to_send_tmp[5]=NODE_ID;
+			data_to_send_tmp[12]=MASTER_ID;
+			data_to_send_tmp[19]=COMMAND_ID_received;
+			data_to_send_tmp[26]=LIVE_STATE;
+			break;
+  }
+send_data(data_to_send_tmp);  
   
 }
 
-void send_data(char* data_to_send)
-{     rf22.send((unsigned char*)data_to_send, sizeof(data_to_send));
+void send_data(unsigned char* data_to_send)
+{     rf22.send(data_to_send, sizeof(data_to_send));
       rf22.waitPacketSent();
       Serial.println("Sending ok");
 	  //TODO: Verify sending. Not tested
 	  //TODO: Add condition to check success of sending
+      Serial.println("Sending data: ");
+	for(unsigned short int index=0;index<35;index++)
+      {
+       Serial.print(data_to_send[index]);
+      }
 }
 
+unsigned char genCMID()
+{
+	return 0xFF;
+
+}
+	
 void clear_all()
 {
   
@@ -428,6 +464,8 @@ void clear_all()
   received_attributes_list[i]="";
   received_properties[i]="";
   received_commands[i]="";
+  num_commands=0;
+  num_properties=0;
   }
 }
 
@@ -475,18 +513,21 @@ void loop()
                   NEW_SWITCH_STATE=((SET_STATE_received&0x01)==0x01)?true:false;
                   Serial.print("New state of switch S0 is ");Serial.println(NEW_SWITCH_STATE);
                   status_update(0,NEW_SWITCH_STATE);
+		//		  send_to_server(SUCCESS);
                 }
                 else if(STATE_DIFFERENCE == 0x02)
                 {
                   NEW_SWITCH_STATE=((SET_STATE_received&0x02)==0x02)?true:false;
                   Serial.print("New state of switch S1 is ");Serial.println(NEW_SWITCH_STATE);
                   status_update(1,NEW_SWITCH_STATE);
+		//		  send_to_server(SUCCESS);
                 }
                 else if(STATE_DIFFERENCE == 0x04)
                 {
                   NEW_SWITCH_STATE=((SET_STATE_received&0x04)==0x04)?true:false;
                   Serial.print("New state of switch S2 is ");Serial.println(NEW_SWITCH_STATE);
                   status_update(2,NEW_SWITCH_STATE);
+		//		  send_to_server(SUCCESS);
                 }
                 else if(STATE_DIFFERENCE == 0x08)
                 {
@@ -494,16 +535,17 @@ void loop()
                   NEW_SWITCH_STATE=((SET_STATE_received&0x08)==0x08)?true:false;
                   Serial.print("New state of switch S3 is ");Serial.println(NEW_SWITCH_STATE);
                   status_update(3,NEW_SWITCH_STATE);
+		//		  send_to_server(SUCCESS);
                 }
                 else
                 {
                   Serial.println("More than one switch state has changed! Notify current state to server");
-                  send_to_server(0);
+                  // send_to_server(FAIL);
                 }
               }
               else if(received_commands[i] == "SDST")
               {
-                  send_to_server(0);
+                  send_to_server(CURRENTSTATE);
                   //TODO: code to be written to send live state to server
               }
               else if(received_commands[i] == "SWMN")
@@ -518,8 +560,8 @@ void loop()
           }
           else
           {//MASTER_ID matches, but NODE_ID does not match=>retransmit
-             Serial.println("NODE ID does not match! Re-transmitting");
-              send_data(data_to_send);
+             Serial.println("NODE ID does not match, drop payload!...");
+           //   send_data(data_to_send);
           }
         }
           else
@@ -533,7 +575,7 @@ void loop()
 		for(i=0;i<N;i++)	
 		{
 		unsigned long time1=pulseIn(S[i].volt_pin,LOW, 100000);
-		Serial.print(S[i].volt_pin);Serial.print("=");Serial.println(time1);
+		//Serial.print(S[i].volt_pin);Serial.print("=");Serial.println(time1);
 		if(time1==0)
 			S[i].volt_current_state=0;
 		else
@@ -544,12 +586,14 @@ void loop()
 			{
 				SET_STATE_received=(LIVE_STATE^= 1 << i);
 				status_update(i,false);
+			//	send_to_server(STATECHANGE);
 			
 			}
 			else
 			{
 				SET_STATE_received=(LIVE_STATE^= 1 << i);
 				status_update(i,true);
+			//	send_to_server(STATECHANGE);
 			}
 		}
 		S[i].volt_prev_state=S[i].volt_current_state;
