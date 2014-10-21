@@ -63,7 +63,9 @@ unsigned char LIVE_STATE,STATE_DIFFERENCE;
 ///const uint64_t pipes[2] = { 0xF0F0F0F0E1LL, 0xF0F0F0F0D2LL };    //pipes for RF communication
 uint8_t pipeno[6];
 unsigned char data_to_send[35];
-unsigned char data_to_send_tmp[35];
+//unsigned char data_to_send_tmp[35];
+// char data_to_send_tmp[35];
+uint8_t data_to_send_tmp[35]="NDID= ,MSID= ,CMID= ,SDST= ,";
 char rec_val_new[32];    
 char attribute[4][10];
 char attr_name[4][6];
@@ -385,38 +387,56 @@ void send_to_server(unsigned short int send_code)
   switch(send_code)
   {
 	case 1:	LIVE_STATE=get_state();
-			strncpy((char *)data_to_send_tmp, "NDID= ,MSID= ,CMID= ,ACKL= ,SDST=  ,", sizeof(data_to_send_tmp));
-			data_to_send_tmp[5]=NODE_ID;
-			data_to_send_tmp[12]=MASTER_ID;
-			data_to_send_tmp[19]=COMMAND_ID_received;
-			data_to_send_tmp[26]=0x01;
-			data_to_send_tmp[33]=LIVE_STATE;
+			//strncpy((char *)data_to_send_tmp, "NDID= ,MSID= ,CMID= ,ACKL= ,SDST=  ,", sizeof(data_to_send_tmp));
+			data_to_send_tmp[5]=NODE_ID+1;
+			data_to_send_tmp[12]=MASTER_ID+1;
+			data_to_send_tmp[19]=COMMAND_ID_received+1;
+			data_to_send_tmp[26]=0x01+1;
+			data_to_send_tmp[33]=LIVE_STATE+1;
 			break;
     case 2:	LIVE_STATE=get_state();
 			COMMAND_ID_generated=genCMID();
-			strncpy((char *)data_to_send_tmp, "NDID= ,MSID= ,CMID= ,SDST= ,", sizeof(data_to_send_tmp));
+		//	strncpy((char *)data_to_send_tmp, "NDID= ,MSID= ,CMID= ,SDST= ,", sizeof(data_to_send_tmp));
            //data_to_send_tmp = "NDID= ,MSID= ,CMID= ,SDST= ";
-			data_to_send_tmp[5]=NODE_ID;
-			data_to_send_tmp[12]=MASTER_ID;
-			data_to_send_tmp[19]=COMMAND_ID_generated;
-			data_to_send_tmp[26]=LIVE_STATE;
+			data_to_send_tmp[5]=NODE_ID+1;
+			data_to_send_tmp[12]=MASTER_ID+1;
+			data_to_send_tmp[19]=COMMAND_ID_generated+1;
+			data_to_send_tmp[26]=LIVE_STATE+1;
 			break;
 	case 3: 
 	case 4: LIVE_STATE=get_state();
-			strncpy((char *)data_to_send_tmp, "NDID= ,MSID= ,CMID= ,SDST= ,", sizeof(data_to_send_tmp));
+		//	strncpy((char *)data_to_send_tmp, "NDID= ,MSID= ,CMID= ,SDST= ,", sizeof(data_to_send_tmp));
            //data_to_send_tmp = "NDID= ,MSID= ,CMID= ,SDST= ";
-			data_to_send_tmp[5]=NODE_ID;
-			data_to_send_tmp[12]=MASTER_ID;
-			data_to_send_tmp[19]=COMMAND_ID_received;
-			data_to_send_tmp[26]=LIVE_STATE;
+			data_to_send_tmp[5]=NODE_ID+1;
+			data_to_send_tmp[12]=MASTER_ID+1;
+			data_to_send_tmp[19]=COMMAND_ID_received+1;
+			data_to_send_tmp[26]=LIVE_STATE+1;
 			break;
   }
-send_data(data_to_send_tmp);  
+//send_data(data_to_send_tmp);  
+  //send_data(data_to_send_tmp);  
   
+  //DEBUG:
+   rf22.send(data_to_send_tmp, sizeof(data_to_send_tmp));
+      rf22.waitPacketSent();
+      Serial.println("Sending ok");
+      Serial.println("Sending data: ");
+	for(unsigned short int index=0;index<35;index++)
+      {
+       Serial.print(data_to_send_tmp[index]);
+       Serial.print(" ");
+      }
+      
+      
 }
 
-void send_data(unsigned char* data_to_send)
-{     rf22.send(data_to_send, sizeof(data_to_send));
+/*
+//void send_data(unsigned char* data_to_send)
+
+void send_data(uint8_t *data_to_send)
+{
+   
+      rf22.send(data_to_send, sizeof(data_to_send));
       rf22.waitPacketSent();
       Serial.println("Sending ok");
 	  //TODO: Verify sending. Not tested
@@ -425,8 +445,10 @@ void send_data(unsigned char* data_to_send)
 	for(unsigned short int index=0;index<35;index++)
       {
        Serial.print(data_to_send[index]);
+       Serial.print(" ");
       }
 }
+*/
 
 unsigned char genCMID()
 {
@@ -444,8 +466,14 @@ void clear_all()
   COMMAND_ID_received=0;
   for(i=0;i<33;i++)
   data_to_send[i]=0;
-  for(i=0;i<33;i++)
+ /* for(i=0;i<33;i++)
   data_to_send_tmp[i]=0;
+  */
+  data_to_send_tmp[5]=0;
+  data_to_send_tmp[12]=0;
+  data_to_send_tmp[19]=0;
+  data_to_send_tmp[26]=0;
+  data_to_send_tmp[33]=0;
   for(i=0;i<32;i++)
    rec_val_new[i]=0;
   for(i=0;i<4;i++)
