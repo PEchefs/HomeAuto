@@ -233,7 +233,7 @@ void clear_all()
 
 void setup(void)
 {
-  Serial.begin(9600);
+  Serial.begin(115200);
 	Serial.println("ROLE:Transmitter");
 	//stringToSend.reserve(200);
 
@@ -347,25 +347,25 @@ void receive_data()
     unsigned char len=sizeof(rec_val);
     if (rf22.recv(rec_val, &len))
     {
-      Serial.print("Received data: ");
+//      Serial.print("Received data: ");
      /// Serial.println((char*)buf);
       for(unsigned short int index=0;index<32;index++)
       {
-       Serial.print(rec_val[index]);
+//       Serial.print(rec_val[index]);
        rec_val_new[index]=rec_val[index];
-       Serial.print(" ");
+//       Serial.print(" ");
       }
 ////      Serial.println("");
       data_to_be_processed=true;
       delay(20);
     }
 ////    Serial.println("Done");
-    Serial.println("");
+ //   Serial.println("");
 }
 
 void sendToPiUART()
 {
-	Serial.print("Sending data: ");
+//	Serial.print("Sending data: ");
 
 
     

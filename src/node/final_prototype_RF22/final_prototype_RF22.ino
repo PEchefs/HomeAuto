@@ -138,7 +138,7 @@ void Node_Init()
 void RF_Init()
 {
 ///        Serial.begin(57600);
-           Serial.begin(9600);        
+           Serial.begin(115200);        
            Serial.println("ROLE:  SLAVE NODE");
            Serial.println("");
 
@@ -160,8 +160,10 @@ void Read_EEPROM()
 //        LAST_COMMAND_ID=EEPROM.read(commom_info_addr+3);
 //        LAST_KEEPALIVE_ID=EEPROM.read(commom_info_addr+4);
 	for(i=0;i<N;i++)	
-	S[i].state = EEPROM.read(S[i].addr);
-	S[i].volt_prev_state = EEPROM.read(S[i].addr+1);
+	{
+          S[i].state = EEPROM.read(S[i].addr);
+	  S[i].volt_prev_state = EEPROM.read(S[i].addr+1);
+        }
 	//	S[i].id = EEPROM.read(S[i].addr+1); //illustration to read more info abt a particular switch
 
 }
@@ -602,7 +604,7 @@ void loop()
 	  {
 		for(i=0;i<N;i++)	
 		{
-		unsigned long time1=pulseIn(S[i].volt_pin,LOW, 100000);
+		unsigned long time1=pulseIn(S[i].volt_pin,LOW, 20000);
 		//Serial.print(S[i].volt_pin);Serial.print("=");Serial.println(time1);
 		if(time1==0)
 			S[i].volt_current_state=0;
