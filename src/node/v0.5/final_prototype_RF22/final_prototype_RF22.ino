@@ -602,11 +602,13 @@ void loop()
       }
 	  else
 	  {
-		for(i=0;i<N;i++)	
+		//for(i=0;i<N;i++)	
+                // below is only for 2 switch case. This is because the other two pins are floating and detecting them will cause unnecessary state change
+                for(i=0;i<2;i++)	
 		{
 		unsigned long time1=pulseIn(S[i].volt_pin,LOW, 20000);
 		//Serial.print(S[i].volt_pin);Serial.print("=");Serial.println(time1);
-		if(time1==0)
+		if(time1<=1000)
 			S[i].volt_current_state=0;
 		else
 			S[i].volt_current_state=1;

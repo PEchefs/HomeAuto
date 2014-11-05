@@ -233,7 +233,8 @@ void clear_all()
 
 void setup(void)
 {
-  Serial.begin(115200);
+  //Serial.begin(115200);
+  Serial.begin(9600);
 	Serial.println("ROLE:Transmitter");
 	//stringToSend.reserve(200);
 
