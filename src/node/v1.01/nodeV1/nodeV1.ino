@@ -108,7 +108,7 @@ boolean Manual()
   
 }
 
-boolean Hardware
+boolean Hardware()
 {
   
 }
