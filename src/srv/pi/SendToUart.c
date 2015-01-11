@@ -161,7 +161,7 @@ return 1;
  Main Fucntion *********************************************************************************
  */
 
-int main(int argc, char *argv[])
+int integrate(char *recv, char *send)
 {
  int i=0;
  char strTosend[17];
@@ -172,16 +172,16 @@ int main(int argc, char *argv[])
   printf("Error opening serial port!");
   return 0;
  }
- printf(" Total Count = %d\n",argc);
+ //printf(" Total Count = %d\n",argc);
 
- for (i = 1; i < argc; i++)
+ for (i = 0; i < 13; i++)
  {
-  printf(" argv[%d] = %s\n",i, argv[i]);
-  printf(" argv[%d] = %x\n",i, atoi(argv[i]));
+  strTosend[i+2] = recv[i];
+//  printf(" strTosend[%d] = %x\n",i+2, strTosend[i+2]);
  }
 
  
- union
+ /*union
  {
   char Rec_Byte[4];
   unsigned int Rec_u16;
@@ -208,7 +208,7 @@ int main(int argc, char *argv[])
  strTosend[11]=Rec_Data.Rec_Byte[0];
  strTosend[12]=Rec_Data.Rec_Byte[1];
  strTosend[13]=Rec_Data.Rec_Byte[2];
- strTosend[14]=Rec_Data.Rec_Byte[3];
+ strTosend[14]=Rec_Data.Rec_Byte[3];*/
 
  strTosend[0]='q';
  strTosend[1]='w';
@@ -235,16 +235,16 @@ int main(int argc, char *argv[])
    {
      for (i=0; i<8; i++)
      {
-       RecByt_u16[i]= serialGetchar(fd);
-       printf("Received Byte [%d]= %d\n",i,RecByt_u16[i]);
+       send[i]= serialGetchar(fd);
+       //printf("Sending Byte [%d]= %d\n",i,send[i]);
        if (i == 7)
        {
-	    fflush (stdout);
-	    serialClose(fd);
+	fflush (stdout);
+	 serialClose(fd);
          return 1;
        }
      }
    }
  }
-return 1;
+
 }
