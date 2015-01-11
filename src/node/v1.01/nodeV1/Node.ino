@@ -125,12 +125,13 @@ void g_MemAddrInit_vd(void)
     Switch[l_Index_ui8].OutPin = g_SwitchOutPins_ui8[l_Index_ui8];
     Switch[l_Index_ui8].Id = g_SwitchId_ui16[l_Index_ui8];
     Switch[l_Index_ui8].lock = 0;
-    Switch[l_Index_ui8].Value = (digitalRead(Switch[l_Index_ui8].InPin));//Assign the Initial Switch.Value  
     Switch[l_Index_ui8].Status = 0; //Assuming all the switches are OFF upon reset.
     
     pinMode(Switch[l_Index_ui8].OutPin,OUTPUT); //Initialise pinModes 
     pinMode(Switch[l_Index_ui8].InPin,INPUT);
     digitalWrite(Switch[l_Index_ui8].InPin,HIGH);
+    
+    Switch[l_Index_ui8].Value = (digitalRead(Switch[l_Index_ui8].InPin));//Assign the Initial Switch.Value  
 
     Serial.print("Switch Memaddress:");
     Serial.println(Switch[l_Index_ui8].MemAddr);
@@ -300,22 +301,36 @@ void g_MatchId_vd(void)
 
 void g_GetStatus_vd(byte f_SwIndex_ui8)
 { 
-  byte l_SendByte_ui8[3];
+  byte l_SendByte_ui8[9];
   
   union
   {
     byte l_SwitchId_ui8[2];
     unsigned int l_SwitchId_ui16;
   }
-  l_Id_un;
+  l_SwitchId_un;
   
-  l_Id_un.l_SwitchId_ui16 = Switch[f_SwIndex_ui8].Id;
-  l_SendByte_ui8[1] = l_Id_un.l_SwitchId_ui8[0];
-  l_SendByte_ui8[0] = l_Id_un.l_SwitchId_ui8[1];
+  union
+  {
+    byte l_NodeId_ui8[4];
+    unsigned long l_NodeId_ui16;
+  }    
+  l_NodeId_un;
+  
+  l_SwitchId_un.l_SwitchId_ui16 = Switch[f_SwIndex_ui8].Id;
+  l_SendByte_ui8[4] = l_SwitchId_un.l_SwitchId_ui8[0];
+  l_SendByte_ui8[5] = l_SwitchId_un.l_SwitchId_ui8[1];
+  
+  l_NodeId_un.l_NodeId_ui16 = g_RecId_un.NodeId;
+  l_SendByte_ui8[3] = l_NodeId_un.l_NodeId_ui8[0];
+  l_SendByte_ui8[2] = l_NodeId_un.l_NodeId_ui8[1]; 
+  l_SendByte_ui8[1] = l_NodeId_un.l_NodeId_ui8[2]; 
+  l_SendByte_ui8[0] = l_NodeId_un.l_NodeId_ui8[3];   
+  
    
-  l_SendByte_ui8[2] = EEPROM.read(Switch[f_SwIndex_ui8].MemAddr);
-  
-  Serial.println(l_SendByte_ui8[2]);
+  l_SendByte_ui8[6] = EEPROM.read(Switch[f_SwIndex_ui8].MemAddr);
+  l_SendByte_ui8[7] = 0;
+  l_SendByte_ui8[8] = 0;
   
   Serial.println("Sending State of the Requested Switch");
   
@@ -389,12 +404,8 @@ void setup()
   g_RfInit_vd();
   g_MemAddrInit_vd();
   Node.NodeId = 959985462;
-}
-
-
-void loop()
-{
-  if(Node.Status == 0)
+   
+  while(Node.Status == 0)
   {
     if(EEPROM.read (Node.MemAddr) != 255)//This if condition is executed only upon power/soft reset.
     {
@@ -412,9 +423,12 @@ void loop()
       }
     }
   }
-  else
-  {
-    if (Serial.available() > 0)
+}
+
+
+ void loop()
+ {
+   if (Serial.available() > 0)
     {
       g_SerialReceive_vd();
     }
@@ -453,6 +467,5 @@ void loop()
       }
     }
     g_Manual_vd();
-  }
-}
+ }
 
