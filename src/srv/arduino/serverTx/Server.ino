@@ -1,20 +1,28 @@
+/***************************************************/
+/**********Header file inclusions*******************/
+
 #include <SPI.h>
 #include <RFM69.h>
 
-#define SENDERID       2    //unique for each node on same network  
+/***************************************************/
+/**********Preprocessor Derivatives*****************/
+#define SENDERID       2    
 #define NETWORKID     100
 #define FREQUENCY   RF69_433MHZ
 
-// Singleton instance of the radio
+/***************************************************/
+/************Global Data Types**********/
+
 RFM69 rf69;
  
-unsigned int g_StartByte_u16 = 0x7771; //Start Pattern
-unsigned int g_EndByte_u16 = 0x7177; //End Pattern
-unsigned long g_TimeStamp1_u16 = 0;  //To Calculate Timeout when receiving from PI
-boolean g_StringComplete_b = false;  // Variable to check whether data reception is complete from PI
-byte g_IncomingByte_byt;  
-byte g_SendtoPi_byt[8];  //Array of bytes to be sent back to PI
-byte g_RecvNodeMsg_ui8[10]; //Array of bytes Received from Node
+unsigned int g_StartByte_u16 = 0x7771;
+unsigned int g_EndByte_u16 = 0x7177;
+unsigned long g_TimeStamp1_u16 = 0;
+boolean g_StringComplete_b = false;
+byte g_IncomingByte_byt;
+byte g_ReceivedByte_byt;
+byte g_SendtoPi_byt[8];
+byte g_SendMsg_ui8[13];
 
 union
 {
@@ -26,20 +34,20 @@ union
     byte  g_ActualMsg_byt[12];
     unsigned int g_RecEndByte_u16;
   };
-  
 }g_ReceivedByte_un;
 
-
+/***************************************************/
+/************Global Function Definitions**********/
 void g_ReceiveData_vd(void)
 {
   byte l_Len_byt;
   byte l_Index_ui8;
   for(l_Index_ui8 = 0;l_Index_ui8< rf69.DATALEN;l_Index_ui8++)
   {
-    g_RecvNodeMsg_ui8[l_Index_ui8]=rf69.DATA[l_Index_ui8];
-    //Serial.println(g_RecvNodeMsg_ui8[l_Index_ui8], HEX);
+    g_SendtoPi_byt[l_Index_ui8+1]=rf69.DATA[l_Index_ui8];
+   // Serial.println(g_SendtoPi_byt[l_Index_ui8+1]);
   }
-  //Serial.println("Received RAW RF Data:");
+  Serial.println("Received RAW RF Data:");
   if (rf69.ACKRequested())
   {
     rf69.sendACK();
@@ -48,24 +56,10 @@ void g_ReceiveData_vd(void)
  return; 
 }
 
-int g_MatchId_u16(void)
-{
-  if ((g_RecvNodeMsg_ui8[0]<<8 | g_RecvNodeMsg_ui8[1]) == (g_ReceivedByte_un.g_ActualMsg_byt[7]<< 8 | g_ReceivedByte_un.g_ActualMsg_byt[6]))
-  {
-    if ((g_RecvNodeMsg_ui8[2]<<8 | g_RecvNodeMsg_ui8[3]) == (g_ReceivedByte_un.g_ActualMsg_byt[5]<< 8 | g_ReceivedByte_un.g_ActualMsg_byt[4]))
-    {
-      return 1;
-    }
-  }
-  return 0;
-}
 void g_SendtoPi_vd(void)
 {
-  if (g_SendtoPi_byt[0] != 0)
+  if (g_SendtoPi_byt[0] == 1)
   {
-    g_SendtoPi_byt[1] = g_RecvNodeMsg_ui8[4];
-    g_SendtoPi_byt[2] = g_RecvNodeMsg_ui8[5];
-    g_SendtoPi_byt[3] = g_RecvNodeMsg_ui8[6];
     g_SendtoPi_byt[4] = 0;
     g_SendtoPi_byt[5] = 0;
     g_SendtoPi_byt[6] = rf69.RSSI;
@@ -79,11 +73,11 @@ void g_SendtoPi_vd(void)
     }
    // Serial.println("Time Out");
   }
-  for (int Index = 0; Index < 8; Index++)
-  {
-     // Serial.println(g_SendtoPi_byt[Index]);
-  }
-
+   for (int Index = 0; Index < 8; Index++)
+    {
+      //Serial.println(g_SendtoPi_byt[Index]);
+    }
+  //Serial.println(rf69.RSSI);
   Serial.write(g_SendtoPi_byt, 8);  
 }
 
@@ -104,10 +98,14 @@ void loop()
 {
   if (g_StringComplete_b)
   {
+   // Serial.println(g_ReceivedByte_un.g_RecStartByte_u16);
+   // Serial.println(g_StartByte_u16);
+   // Serial.println(g_ReceivedByte_un.g_RecEndByte_u16);
+   // Serial.println(g_EndByte_u16);
     g_StringComplete_b = false;
     if ((g_StartByte_u16 == g_ReceivedByte_un.g_RecStartByte_u16) && (g_EndByte_u16 == g_ReceivedByte_un.g_RecEndByte_u16))
     {
-      
+      // Serial.println("Sending the data now");
       if(rf69.sendWithRetry(g_ReceivedByte_un.g_RFId_byt, g_ReceivedByte_un.g_ActualMsg_byt, sizeof(g_ReceivedByte_un.g_ActualMsg_byt), 5, 45))
       {
         // Serial.println("Sent Successfully");
@@ -115,18 +113,17 @@ void loop()
       else
       {
         g_SendtoPi_byt[0] = 0;
-      //  g_SendtoPi_vd();
+        g_SendtoPi_vd();
       }
     }
     
-    unsigned long l_LoopTime_u16 = millis();
-    unsigned long l_LoopTime2_u16 = 0;
+    unsigned long timestamp = millis();
     boolean l_DataRec_b = 1;
     while(rf69.receiveDone() == 0)
     {
-      l_LoopTime2_u16 = millis();
+      unsigned long timestamp2 = millis();
       
-      if ((l_LoopTime2_u16 - l_LoopTime_u16) > 300 )
+      if ((timestamp2 - timestamp) > 300 )
       {
         l_DataRec_b = 0;
         g_SendtoPi_byt[0] = 0;
@@ -139,7 +136,8 @@ void loop()
     {
      // Serial.println("Data Received");
       g_ReceiveData_vd();
-      g_SendtoPi_byt[0] = g_MatchId_u16();
+      delay(60);
+      g_SendtoPi_byt[0] = 1;
       g_SendtoPi_vd();
     }      
   }
