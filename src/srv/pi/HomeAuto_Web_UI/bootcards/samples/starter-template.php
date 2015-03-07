@@ -74,6 +74,7 @@
 
 <body>
 
+
   <!-- fixed top navbar -->
   <div class="navbar navbar-default navbar-fixed-top" role="navigation">
     <div class="container">
@@ -138,7 +139,7 @@
         </a>
       </li>
 	  <li>
-        <a href="#">
+        <a href="../lib/php/register.php">
           <i class="fa fa-lg fa-list"></i>Register
         </a>
       </li>
