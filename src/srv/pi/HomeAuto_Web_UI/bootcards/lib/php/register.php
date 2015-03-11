@@ -17,32 +17,6 @@
     <link href="assets/css/font-awesome.min.css" rel="stylesheet" />
 	
       <script src="../../lib/js/jquery.js" type="text/javascript"></script>
-	  
-	<script type="text/javascript">
-	
-	function updateDB() {
-	
-		alert("it works");
-		alert(document.getElementById('regName').value);
-		alert(document.getElementById('regMobile').value);
-		alert(document.getElementById('regEmail').value);
-		
-		$.ajax({
-	url : 'updateRegisterData.php',
-	type : 'POST',
-	data: {name: document.getElementById('regName').value), mobile: document.getElementById('regMobile').value , email: document.getElementById('regEmail').value},
-	dataType : 'html',
-	success : function() {
-		 alert('success');
-	},
-	error : function() {
-		alert('failure');
-	}
-});
-		
-
-	}
-	</script>
    
 
 </head>

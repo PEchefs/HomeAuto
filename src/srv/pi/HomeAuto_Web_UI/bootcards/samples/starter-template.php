@@ -124,7 +124,7 @@
         </a> 
       </li>
       <li>
-        <a href="#">
+        <a href="../lib/php/nodeSetUp.php">
           <i class="fa fa-lg fa-dashboard"></i>Node Setup
         </a>
       </li>
